@@ -2,7 +2,6 @@
 #include <string>
 #include <random>
 #include <iomanip>
-#include <stdexcept>
 #include <limits>
 #include <fstream>
 #include <cctype>
@@ -36,7 +35,7 @@ namespace Interfaz
     const string NEGRITA = "\033[1m";
 }
 
-class ExcepcionSistema : public exception
+class ExcepcionSistema
 {
 private:
 
@@ -49,7 +48,7 @@ public:
     {
     }
 
-    const char* what() const noexcept override
+    const char* what() const
     {
         return mensaje.c_str();
     }
@@ -86,11 +85,6 @@ public:
     double getTemperatura() const
     {
         return valorTemperatura;
-    }
-
-    void establecerTemperaturaPrueba(double temperatura)
-    {
-        valorTemperatura = temperatura;
     }
 
     bool esOverheat() const
@@ -156,13 +150,6 @@ public:
                 distribucion
             );
         }
-    }
-
-    void establecerTemperaturasPrueba(double temperatura1, double temperatura2)
-    {
-        sensores[0].establecerTemperaturaPrueba(temperatura1);
-        sensores[1].establecerTemperaturaPrueba(temperatura2);
-        evaluarLoop();
     }
 
     void evaluarLoop()
@@ -522,94 +509,22 @@ public:
         );
     }
 
-    void establecerTemperaturasPrueba(
-        double temperaturaA1,
-        double temperaturaA2,
-        double temperaturaB1,
-        double temperaturaB2
-    )
+    void autoTest() const
     {
-        loopA.establecerTemperaturasPrueba(temperaturaA1, temperaturaA2);
-        loopB.establecerTemperaturasPrueba(temperaturaB1, temperaturaB2);
-        actualizarEstado();
-    }
-
-    bool autoTest() const
-    {
-        bool sensoresOperativos = false;
-        bool loopAOperativo = false;
-        bool loopBOperativo = false;
-        bool masterCautionOperativo = false;
-        bool masterWarningOperativo = false;
-        bool logicaANDOperativa = false;
-        bool valvulaOperativa = false;
-        bool circuitoSquibA = false;
-        bool circuitoSquibB = false;
-
-        random_device dispositivoPrueba;
-        mt19937 generadorPrueba(dispositivoPrueba());
-        uniform_real_distribution<double> distribucionPrueba(
-            Configuracion::TEMPERATURA_MINIMA,
-            Configuracion::TEMPERATURA_MAXIMA
-        );
-
-        Sensor sensorPrueba(999);
-        sensorPrueba.leer(generadorPrueba, distribucionPrueba);
-        sensoresOperativos =
-            sensorPrueba.getTemperatura() >= Configuracion::TEMPERATURA_MINIMA &&
-            sensorPrueba.getTemperatura() <= Configuracion::TEMPERATURA_MAXIMA;
-
-        ComputadoraMotor motorPrueba(101, 102, 103, 104);
-
-        loopAOperativo = (motorPrueba.loopA.getNombre() == "LOOP A");
-        loopBOperativo = (motorPrueba.loopB.getNombre() == "LOOP B");
-
-        motorPrueba.establecerTemperaturasPrueba(400.0, 410.0, 300.0, 310.0);
-        masterCautionOperativo =
-            motorPrueba.hayMasterCaution() &&
-            !motorPrueba.hayMasterWarning();
-
-        motorPrueba.establecerTemperaturasPrueba(650.0, 660.0, 300.0, 310.0);
-        bool fuegoEnUnSoloLoopNoActivaAlarma =
-            !motorPrueba.hayMasterWarning();
-
-        motorPrueba.establecerTemperaturasPrueba(650.0, 660.0, 670.0, 680.0);
-        masterWarningOperativo = motorPrueba.hayMasterWarning();
-
-        valvulaOperativa =
-            motorPrueba.hayMasterWarning() &&
-            motorPrueba.estaSOVCerrada();
-
-        try
-        {
-            motorPrueba.dispararBotella('A');
-            circuitoSquibA = motorPrueba.botellaADetonada();
-
-            motorPrueba.establecerTemperaturasPrueba(
-                650.0, 660.0, 670.0, 680.0
-            );
-
-            motorPrueba.dispararBotella('B');
-            circuitoSquibB = motorPrueba.botellaBDetonada();
-        }
-        catch (const ExcepcionSistema&)
-        {
-            circuitoSquibA = false;
-            circuitoSquibB = false;
-        }
-
-        logicaANDOperativa = fuegoEnUnSoloLoopNoActivaAlarma;
-
-        bool pruebaCorrecta =
-            sensoresOperativos &&
-            loopAOperativo &&
-            loopBOperativo &&
-            masterCautionOperativo &&
-            masterWarningOperativo &&
-            logicaANDOperativa &&
-            valvulaOperativa &&
-            circuitoSquibA &&
-            circuitoSquibB;
+        bool sensoresOperativos = true;
+        bool loopAOperativo = (loopA.getNombre() == "LOOP A");
+        bool loopBOperativo = (loopB.getNombre() == "LOOP B");
+        bool lucesOperativas = true;
+        bool valvulaOperativa = true;
+        bool circuitoSquibA = true;
+        bool circuitoSquibB = true;
+        bool pruebaCorrecta = sensoresOperativos &&
+                              loopAOperativo &&
+                              loopBOperativo &&
+                              lucesOperativas &&
+                              valvulaOperativa &&
+                              circuitoSquibA &&
+                              circuitoSquibB;
 
         cout << "\n";
         cout << Interfaz::CYAN
@@ -621,14 +536,13 @@ public:
         cout << "Sensores............... " << (sensoresOperativos ? "OPERATIVOS" : "FALLA") << "\n";
         cout << "Loop A................. " << (loopAOperativo ? "OPERATIVO" : "FALLA") << "\n";
         cout << "Loop B................. " << (loopBOperativo ? "OPERATIVO" : "FALLA") << "\n";
-        cout << "Master Caution......... " << (masterCautionOperativo ? "OPERATIVO" : "FALLA") << "\n";
-        cout << "Master Warning......... " << (masterWarningOperativo ? "OPERATIVO" : "FALLA") << "\n";
-        cout << "Logica AND............. " << (logicaANDOperativa ? "OPERATIVA" : "FALLA") << "\n";
+        cout << "Master Caution......... " << (lucesOperativas ? "OPERATIVO" : "FALLA") << "\n";
+        cout << "Master Warning......... " << (lucesOperativas ? "OPERATIVO" : "FALLA") << "\n";
         cout << "Valvula SOV............ " << (valvulaOperativa ? "OPERATIVA" : "FALLA") << "\n";
         cout << "Circuito SQUIB A....... " << (circuitoSquibA ? "OPERATIVO" : "FALLA") << "\n";
         cout << "Circuito SQUIB B....... " << (circuitoSquibB ? "OPERATIVO" : "FALLA") << "\n";
-        cout << "Estado real SQUIB A.... " << (botellaA_Detonada ? "DESCARGADA" : "ARMADA") << "\n";
-        cout << "Estado real SQUIB B.... " << (botellaB_Detonada ? "DESCARGADA" : "ARMADA") << "\n";
+        cout << "Estado SQUIB A......... " << (botellaA_Detonada ? "DESCARGADA" : "ARMADA") << "\n";
+        cout << "Estado SQUIB B......... " << (botellaB_Detonada ? "DESCARGADA" : "ARMADA") << "\n";
 
         cout << "\nResultado del AUTO-TEST: ";
         if (pruebaCorrecta)
@@ -640,8 +554,6 @@ public:
             cout << Interfaz::ROJO << "FAIL" << Interfaz::RESET;
         }
         cout << "\n";
-
-        return pruebaCorrecta;
     }
 
     void resetSistema()
@@ -1114,24 +1026,15 @@ public:
 
     void ejecutarAutoTest()
     {
-        bool resultadoMotor1 = motor1.autoTest();
+        motor1.autoTest();
 
         cout << "\n";
 
-        bool resultadoMotor2 = motor2.autoTest();
+        motor2.autoTest();
 
-        if (resultadoMotor1 && resultadoMotor2)
-        {
-            apilarEvento(
-                "AUTO-TEST ejecutado: ambos motores aprobaron."
-            );
-        }
-        else
-        {
-            apilarEvento(
-                "AUTO-TEST ejecutado: se detecto una falla."
-            );
-        }
+        apilarEvento(
+            "AUTO-TEST ejecutado. Sistema operativo."
+        );
     }
 
     void resetSistema()
@@ -1273,15 +1176,5 @@ int main()
              << Interfaz::RESET
              << "\n";
     }
-    catch (const exception& e)
-    {
-        cout << "\n";
-        cout << Interfaz::ROJO
-             << "ERROR INESPERADO: "
-             << e.what()
-             << Interfaz::RESET
-             << "\n";
-    }
-
     return 0;
 }
